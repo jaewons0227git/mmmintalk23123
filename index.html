@@ -934,7 +934,7 @@
         
         let title = sr.title;
         if(sr.type === 'private' && !title) {
-             const f = friendList.find(fr => sr.id.includes(f.id));
+             const f = friendList.find(fr => sr.id.includes(fr.id));
              if(f) title = f.name;
              else title = "알 수 없음";
         }
