@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>생일축하합니다</title>
+    <style>
+        /* ① 폰트 선언 */
+        @font-face {
+            font-family: 'SchoolSafetyRoundedSmile';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-5@1.0/HakgyoansimDunggeunmisoTTF-R.woff2') format('woff2');
+            font-weight: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'SchoolSafetyRoundedSmile';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-5@1.0/HakgyoansimDunggeunmisoTTF-B.woff2') format('woff2');
+            font-weight: 700;
+            font-display: swap;
+        }
+
+        /* ② 배경·레아웃 (흰색 배경) */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #ffffff;
+            font-family: 'SchoolSafetyRoundedSmile', sans-serif;
+        }
+        .container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            text-align: center;
+            position: relative;
+        }
+        .full-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* ③ 타이틀 스타일 – 줄바꿈 방지 */
+        .birthday-text {
+            font-size: 36px;               /* 기본 폰트 크기 */
+            font-weight: 700;              /* 굵은 체 적용 */
+            color: #000000;
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-shadow: 0 0 10px rgba(0,0,0,0.5);
+            white-space: nowrap;           /* 절대 줄바꿈 금지 */
+        }
+
+        /* 모바일 전용 – 폰트 크기 자동 조정 */
+        @media (max-width: 767px) {
+            .birthday-text {
+                font-size: 5vw;            /* 화면 너비에 비례해 축소 */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <img src="https://i.postimg.cc/pT86qWyX/seukeulinsyas-2026-01-03-144503.png"
+             alt="Birthday Image"
+             class="full-image">
+        <div class="birthday-text">생일 축하합니다!</div>
+    </div>
+
+    <!-- canvas‑confetti 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        const isMobile = window.innerWidth < 768;
+
+        function launchSmartFireworks() {
+            const particleCount = isMobile ? 30 : 60;
+            const colors = ['#ff0000', '#ffd700', '#ff00ff', '#00ff00', '#00eaff', '#ffffff', '#ff8800'];
+
+            // 최초 전체 폭죽
+            confetti({
+                particleCount: 100,
+                spread: 180,
+                origin: { x: 0.5, y: 0.5 },
+                colors: colors,
+                scalar: 1.5,
+                gravity: 0.5,
+                ticks: 200
+            });
+
+            // 좌·우 하단 지속 불꽃
+            setInterval(() => {
+                confetti({
+                    particleCount: particleCount / 2,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0, y: 0.8 },
+                    colors: colors,
+                    gravity: 0.8,
+                    ticks: 150
+                });
+                confetti({
+                    particleCount: particleCount / 2,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1, y: 0.8 },
+                    colors: colors,
+                    gravity: 0.8,
+                    ticks: 150
+                });
+                if (Math.random() > 0.5) {
+                    confetti({
+                        particleCount: particleCount,
+                        spread: 100,
+                        origin: { x: Math.random(), y: Math.random() * 0.5 },
+                        colors: colors,
+                        scalar: 1.2
+                    });
+                }
+            }, isMobile ? 2500 : 1500);
+        }
+
+        window.onload = launchSmartFireworks;
+    </script>
+</body>
+</html>
