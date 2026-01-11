@@ -438,6 +438,109 @@
 #app-info-view {
     animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
+
+
+/* === 로그인 화면 내 '회원가입' 버튼 === */
+.signup-link-btn {
+    background: transparent;
+    border: none;
+    color: #1a73e8; /* 구글 블루 */
+    font-weight: 600;
+    padding: 10px;
+    margin-top: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: opacity 0.2s;
+}
+.signup-link-btn:active { opacity: 0.6; }
+
+/* === 회원가입 화면 (전체 덮개) === */
+#view-signup {
+    position: fixed;
+    top: 0;
+    left: 100%; /* 화면 오른쪽 밖에서 대기 */
+    width: 100%;
+    height: 100%;
+    background-color: #fff;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.35s cubic-bezier(0.4, 0.0, 0.2, 1); /* 구글 스타일의 부드러운 가속/감속 */
+}
+#view-signup.active {
+    transform: translateX(-100%); /* 화면 안으로 진입 */
+}
+
+/* 헤더 스타일 */
+.signup-header {
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    border-bottom: 1px solid #f1f3f4;
+    font-size: 18px;
+    font-weight: 500;
+    flex-shrink: 0; /* 크기 줄어듦 방지 */
+}
+
+/* [중요] 슬라이드 마스크 영역 (여기서 넘치는 걸 자름) */
+.signup-container {
+    flex: 1;
+    width: 100%;
+    position: relative;
+    overflow: hidden; /* 옆에 있는 화면을 안 보이게 자름 */
+}
+
+/* 움직이는 긴 판 (2단계이므로 가로 200%) */
+.signup-slider {
+    display: flex;
+    width: 200%; 
+    height: 100%;
+    transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1); /* 부드러운 슬라이드 */
+}
+
+/* 각 단계 화면 (각각 50% 차지 = 화면 꽉 참) */
+.signup-step {
+    width: 50%;
+    height: 100%;
+    flex-shrink: 0; /* 찌그러짐 방지 */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* 폼 디자인 다듬기 */
+.signup-form-box {
+    width: 100%;
+    max-width: 320px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding-top: 20px;
+}
+.signup-form-box h3 {
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 700;
+}
+.sub-desc {
+    margin: 0 0 30px 0;
+    color: #5f6368;
+    font-size: 14px;
+}
+.signup-form-box .login-input {
+    margin-bottom: 12px;
+    border-radius: 8px; /* 조금 더 모던하게 */
+    border: 1px solid #dadce0;
+}
+.signup-form-box .login-input:focus {
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 1px #1a73e8;
+}
 </style>
 
 </head>
@@ -460,14 +563,59 @@
     <input id="login-pw" type="password" class="login-input" placeholder="비밀번호">
     <img src="https://i.postimg.cc/FHC2gcKw/supawork-e581c010c923449a8cbeab7a31029ed5.webp" style="display:none;">
 
-<button class="login-btn" onclick="handleLogin()">
-  <span id="btn-text">로그인</span>
-  <div id="btn-loader" class="ui-load-glx hidden"></div>
-</button>
+    <button class="login-btn" onclick="handleLogin()">
+      <span id="btn-text">로그인</span>
+      <div id="btn-loader" class="ui-load-glx hidden"></div>
+    </button>
+    
+    <button class="signup-link-btn" onclick="openSignup()">회원가입</button>
+    
     <div id="login-msg" class="login-error"></div>
   </div>
 </div>
 
+<button class="signup-link-btn" onclick="openSignup()">회원가입</button>
+
+
+<div id="view-signup">
+  <div class="signup-header">
+    <span class="material-symbols-outlined icon" onclick="closeSignup()">arrow_back</span>
+    <span>회원가입</span>
+    <div style="width:24px;"></div>
+  </div>
+
+  <div class="signup-container">
+    <div class="signup-slider" id="signup-slider">
+      
+      <div class="signup-step">
+        <div class="signup-form-box">
+          <h3>기본 정보 입력</h3>
+          <p class="sub-desc">서비스에서 사용할 아이디와 이름을 알려주세요</p>
+          <input id="signup-id" class="login-input" placeholder="아이디" autocomplete="off">
+          <input id="signup-nick" class="login-input" placeholder="닉네임" autocomplete="off">
+          <div style="flex:1"></div>
+          <button class="login-btn" onclick="nextSignupStep()">다음</button>
+        </div>
+      </div>
+
+      <div class="signup-step">
+        <div class="signup-form-box">
+          <h3>보안 설정</h3>
+          <p class="sub-desc">안전한 비밀번호를 입력해주세요</p>
+          <input id="signup-pw" type="password" class="login-input" placeholder="비밀번호">
+          <input id="signup-pw-confirm" type="password" class="login-input" placeholder="비밀번호 확인">
+          <div style="flex:1"></div>
+          <button class="login-btn" onclick="requestSignup()" style="background:#1a73e8;">
+            <span id="signup-btn-text">계정 만들기</span>
+            <div id="signup-loader" class="ui-load-glx hidden"></div>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+      
 <div id="screen-container">
   <div id="main-layout">
     <div id="left-side">
@@ -1728,6 +1876,106 @@ function checkUpdate() {
     }, 4000);
 }
 
+
+
+/* =========================================
+   [추가] 회원가입 관련 로직
+   ========================================= */
+
+/* === 회원가입 관련 로직 === */
+function openSignup() {
+    document.getElementById('view-signup').classList.add('active');
+}
+
+function closeSignup() {
+    document.getElementById('view-signup').classList.remove('active');
+    // 애니메이션 후 초기화
+    setTimeout(() => {
+        document.getElementById('signup-slider').style.transform = 'translateX(0)';
+        // 입력 필드 초기화
+        document.getElementById('signup-id').value = '';
+        document.getElementById('signup-nick').value = '';
+        document.getElementById('signup-pw').value = '';
+        document.getElementById('signup-pw-confirm').value = '';
+    }, 350);
+}
+
+function nextSignupStep() {
+    const id = document.getElementById('signup-id').value.trim();
+    const nick = document.getElementById('signup-nick').value.trim();
+
+    if (!id || !nick) {
+        alert("아이디와 닉네임을 모두 입력해주세요.");
+        return;
+    }
+    
+    // 오른쪽(2단계)으로 슬라이드 이동
+    // slider가 200% 너비이므로 -50% 이동하면 딱 절반인 2번째 화면이 나옴
+    document.getElementById('signup-slider').style.transform = 'translateX(-50%)';
+}
+
+async function requestSignup() {
+    const id = document.getElementById('signup-id').value.trim();
+    const nick = document.getElementById('signup-nick').value.trim();
+    const pw = document.getElementById('signup-pw').value.trim();
+    const pwConfirm = document.getElementById('signup-pw-confirm').value.trim();
+    
+    const loader = document.getElementById('signup-loader');
+    const btnText = document.getElementById('signup-btn-text');
+
+    if (!pw || !pwConfirm) {
+        alert("비밀번호를 입력해주세요.");
+        return;
+    }
+    if (pw !== pwConfirm) {
+        alert("비밀번호가 일치하지 않습니다.");
+        return;
+    }
+
+    // 로딩 시작
+    btnText.style.display = 'none';
+    if(loader) loader.classList.remove('hidden');
+
+    try {
+        // 1. 중복 체크
+        const checkRes = await fetch('/api/check-duplicate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: id })
+        });
+        const checkData = await checkRes.json();
+
+        if (!checkData.available) { // 백엔드 응답 키값에 따라 수정 (예: checkData.isDuplicate)
+            alert("이미 사용 중인 아이디입니다.");
+            // 다시 1단계로 돌아가기
+            document.getElementById('signup-slider').style.transform = 'translateX(0)';
+            return;
+        }
+
+        // 2. 회원가입 요청
+        const signupRes = await fetch('/api/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: id, nickname: nick, password: pw })
+        });
+        const signupData = await signupRes.json();
+
+        if (signupData.success) {
+            alert("회원가입 완료! 로그인해주세요.");
+            closeSignup();
+        } else {
+            alert("가입 실패: " + (signupData.message || "오류 발생"));
+        }
+
+    } catch (e) {
+        console.error(e);
+        alert("서버 연결 오류");
+    } finally {
+        // 로딩 종료
+        btnText.style.display = 'block';
+        if(loader) loader.classList.add('hidden');
+    }
+}
 </script>
   <div id="app-info-view" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#fff; z-index:5000; flex-direction:column; align-items:center; justify-content:space-between; padding: 80px 20px 60px 20px;">
     
