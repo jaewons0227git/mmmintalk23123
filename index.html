@@ -438,6 +438,121 @@
 #app-info-view {
     animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
+
+
+/* ===== [NEW] 검색 아이콘 배지 및 알림 배너 스타일 ===== */
+
+/* 검색 아이콘 감싸는 컨테이너 (배지 위치 잡기용) */
+.search-icon-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* 빨간 점 (알림 배지) */
+.badge-dot {
+    position: absolute;
+    top: 5px;
+    right: 3px;
+    width: 6px;
+    height: 6px;
+    background-color: #ff3b30;
+    border-radius: 50%;
+    display: none; /* 기본은 숨김 */
+    z-index: 10;
+}
+.badge-dot.show { display: block; }
+
+/* 상단 알림 배너 (아이폰 다이내믹 아일랜드 느낌) */
+#notification-banner {
+    position: fixed;
+    top: -120px; /* 화면 밖에서 시작 */
+    left: 20px;
+    right: 20px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    z-index: 9999;
+    transition: top 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); /* 부드러운 튕김 효과 */
+    cursor: pointer;
+}
+
+#notification-banner.show {
+    top: 10px; /* 화면 상단으로 내려옴 */
+}
+
+/* 알림 내용 */
+.notif-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-left: 12px;
+}
+.notif-title { font-size: 14px; font-weight: bold; color: #000; }
+.notif-desc { font-size: 12px; color: #666; margin-top: 2px; }
+.notif-icon {
+    width: 36px; height: 36px;
+    background: #eef6ff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #0481ff;
+}
+
+/* 검색 모달 내부 스타일 */
+.search-modal-tabs {
+    display: flex;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 15px;
+}
+.search-tab {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: #aaa;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+}
+.search-tab.active {
+    color: #000;
+    border-bottom: 2px solid #000;
+}
+
+/* 검색 결과 및 요청 리스트 아이템 */
+.user-item-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #f5f5f5;
+}
+.user-info-area { display: flex; align-items: center; gap: 10px; }
+.user-card-thumb {
+    width: 40px; height: 40px; border-radius: 14px; background: #eee;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: bold; color: #888;
+}
+.user-card-btn {
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+}
+.btn-blue { background: #0481ff; color: white; }
+.btn-gray { background: #f2f2f2; color: #555; }
+.btn-disabled { background: #eee; color: #aaa; cursor: not-allowed; }
 </style>
 
 </head>
@@ -477,7 +592,10 @@
           <div class="header-icons">
             <div class="minsu-gpt-btn" onclick="openMinsuGPT()">MinsuGPT</div>
             <span class="icon" onclick="openCreateChatModal()">add_circle</span>
-            <span class="icon">search</span>
+            <div class="search-icon-wrapper" onclick="openSearchModal()">
+    <span class="material-symbols-outlined icon">search</span>
+    <div id="search-badge" class="badge-dot"></div>
+</div>
           </div>
         </div>
 
@@ -1728,6 +1846,209 @@ function checkUpdate() {
     }, 4000);
 }
 
+
+
+
+  /* ===== [REAL] 백엔드 연동 친구 시스템 ===== */
+
+let receivedRequests = []; // 받은 요청 목록 캐시
+
+// 1. 유저 검색 (서버 통신)
+async function searchUser() {
+    const input = document.getElementById("user-search-input");
+    const query = input.value.trim();
+    if (!query) return;
+
+    const resultArea = document.getElementById("search-result-area");
+    resultArea.innerHTML = `<div class="ui-load-glx"><div class="gbx"><div class="bx"><i></i><i></i><i></i><i></i></div></div></div>`;
+
+    try {
+        const res = await fetch(`/search-user?query=${encodeURIComponent(query)}&id=${myId}`);
+        const data = await res.json();
+
+        if (!data.success) {
+            resultArea.innerHTML = `<p style="color:#d93025; margin-top:20px;">${data.message || "사용자를 찾을 수 없습니다."}</p>`;
+            return;
+        }
+
+        const user = data.user;
+        const relation = data.relation; // 'none', 'friend', 'sent', 'received'
+
+        let btnHtml = "";
+        if (relation === 'friend') {
+            btnHtml = `<button class="user-card-btn btn-disabled" disabled>이미 친구</button>`;
+        } else if (relation === 'sent') {
+            btnHtml = `<button class="user-card-btn btn-disabled" disabled>요청 보냄</button>`;
+        } else if (relation === 'received') {
+            btnHtml = `<button class="user-card-btn btn-blue" onclick="switchSearchTab('requests')">요청 확인</button>`;
+        } else {
+            btnHtml = `<button class="user-card-btn btn-blue" onclick="sendFriendRequest('${user.id}', '${user.name}')">친구 요청</button>`;
+        }
+
+        resultArea.innerHTML = `
+            <div class="user-item-card">
+                <div class="user-info-area">
+                    <div class="user-card-thumb">${user.name[0]}</div>
+                    <div style="text-align:left;">
+                        <div style="font-weight:bold; font-size:14px;">${user.name}</div>
+                        <div style="font-size:11px; color:#888;">ID: ${user.id}</div>
+                    </div>
+                </div>
+                ${btnHtml}
+            </div>
+        `;
+
+    } catch (e) {
+        console.error(e);
+        resultArea.innerHTML = `<p style="color:#d93025; margin-top:20px;">검색 중 오류가 발생했습니다.</p>`;
+    }
+}
+
+// 2. 친구 요청 보내기
+async function sendFriendRequest(targetId, targetName) {
+    if(!confirm(`${targetName}님에게 친구 요청을 보내시겠습니까?`)) return;
+
+    try {
+        const res = await fetch('/send-friend-request', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ myId: myId, targetId: targetId })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showCustomAlert("친구 요청을 보냈습니다.");
+            searchUser(); // UI 갱신 (버튼 상태 변경)
+        } else {
+            showCustomAlert(data.message || "요청 실패");
+        }
+    } catch (e) {
+        showCustomAlert("오류가 발생했습니다.");
+    }
+}
+
+// 3. 받은 요청 목록 가져오기 및 알림 체크 (폴링)
+async function checkFriendRequests() {
+    if (!myId) return; // 로그인 전이면 중단
+
+    try {
+        const res = await fetch(`/get-pending-requests?id=${myId}`);
+        const requests = await res.json();
+
+        // [알림 로직] 새로운 요청이 감지되면 알림 배너 띄우기
+        // 기존 목록(receivedRequests)에 없던 ID가 생기면 새 요청으로 간주
+        const newReqs = requests.filter(req => !receivedRequests.some(old => old.id === req.id));
+        
+        if (newReqs.length > 0) {
+            // 가장 최근 요청 한 명에 대해 알림 표시
+            const latest = newReqs[0];
+            triggerIncomingRequest(latest.name); 
+        }
+
+        // 목록 업데이트
+        receivedRequests = requests;
+        updateRequestCount();
+        
+        // 만약 요청 탭을 보고 있다면 리스트도 갱신
+        if(document.getElementById("requests-view-content").style.display === 'block') {
+            renderReceivedRequests();
+        }
+
+        // 안 읽은 요청이 있으면 배지 표시
+        if (requests.length > 0) {
+            document.getElementById("search-badge").classList.add("show");
+        } else {
+            document.getElementById("search-badge").classList.remove("show");
+        }
+
+    } catch (e) {
+        console.error("Failed to check requests", e);
+    }
+}
+
+// 4. 알림 배너 UI 표시 (기존 유지)
+function triggerIncomingRequest(senderName) {
+    const banner = document.getElementById("notification-banner");
+    const msg = document.getElementById("notif-message");
+    
+    msg.innerText = `${senderName}님의 친구추가 요청이 있습니다`;
+    banner.classList.add("show");
+
+    // 3초 뒤 사라짐
+    setTimeout(() => {
+        banner.classList.remove("show");
+    }, 3000);
+}
+
+// 5. 받은 요청 리스트 그리기
+function renderReceivedRequests() {
+    const listContainer = document.getElementById("received-requests-list");
+    if (receivedRequests.length === 0) {
+        listContainer.innerHTML = `<p style="color:#999; margin-top:20px;">받은 요청이 없습니다.</p>`;
+        return;
+    }
+
+    listContainer.innerHTML = "";
+    receivedRequests.forEach(req => {
+        listContainer.innerHTML += `
+            <div class="user-item-card">
+                <div class="user-info-area">
+                    <div class="user-card-thumb">${req.name[0]}</div>
+                    <div style="text-align:left;">
+                        <div style="font-weight:bold; font-size:14px;">${req.name}</div>
+                        <div style="font-size:11px; color:#888;">친구 요청</div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:5px;">
+                    <button class="user-card-btn btn-blue" onclick="respondRequest('${req.id}', 'accept')">수락</button>
+                    <button class="user-card-btn btn-gray" onclick="respondRequest('${req.id}', 'reject')">거절</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+// 6. 수락/거절 처리
+async function respondRequest(targetId, action) {
+    try {
+        const res = await fetch('/respond-friend-request', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ myId: myId, targetId: targetId, action: action })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            if (action === 'accept') {
+                showCustomAlert("친구가 되었습니다!");
+                // 친구 목록 전역 변수 업데이트 및 UI 갱신
+                if (data.newFriendList) {
+                    friendList = data.newFriendList; 
+                    renderFriendList(); // 기존 코드에 있는 친구 목록 그리기 함수 호출
+                }
+            } else {
+                showCustomAlert("거절했습니다.");
+            }
+            // 요청 목록 다시 불러오기
+            checkFriendRequests();
+        }
+    } catch (e) {
+        showCustomAlert("처리 중 오류 발생");
+    }
+}
+
+function updateRequestCount() {
+    const badge = document.getElementById("req-count-badge");
+    if(receivedRequests.length > 0) {
+        badge.innerText = receivedRequests.length;
+    } else {
+        badge.innerText = "";
+    }
+}
+
+// [핵심] 3초마다 요청 확인 (실시간 알림 효과)
+setInterval(checkFriendRequests, 3000);
+
 </script>
   <div id="app-info-view" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#fff; z-index:5000; flex-direction:column; align-items:center; justify-content:space-between; padding: 80px 20px 60px 20px;">
     
@@ -1751,6 +2072,43 @@ function checkUpdate() {
     <button class="modal-btn bg-y" style="width:120px; border-radius:50px; height:45px;" onclick="closeAppInfo()">닫기</button>
 </div>
 </div>
+</div>
+
+
+  <div id="notification-banner" onclick="openSearchModal()">
+    <div class="notif-icon">
+        <span class="material-symbols-outlined" style="font-size:20px;">person_add</span>
+    </div>
+    <div class="notif-content">
+        <div class="notif-title">친구 요청</div>
+        <div class="notif-desc" id="notif-message">00님의 친구 추가 요청이 있습니다</div>
+    </div>
+</div>
+
+<div id="searchUserModal" class="modal">
+    <div class="modal-box" style="height: 500px; display: flex; flex-direction: column;">
+        
+        <div class="search-modal-tabs">
+            <div class="search-tab active" onclick="switchSearchTab('search')" id="tab-btn-search">ID 검색</div>
+            <div class="search-tab" onclick="switchSearchTab('requests')" id="tab-btn-requests">받은 요청 <span id="req-count-badge" style="font-size:10px; color:#ff3b30; margin-left:4px;"></span></div>
+        </div>
+
+        <div id="search-view-content" style="flex:1; overflow-y:auto;">
+            <div style="position:relative; margin-bottom:20px;">
+                <input id="user-search-input" class="login-input" style="width:100%; padding-right:40px;" placeholder="친구 ID 입력" onkeyup="if(event.key==='Enter') searchUser()">
+                <span class="material-symbols-outlined" onclick="searchUser()" style="position:absolute; right:15px; top:50%; transform:translateY(-50%); color:#888; cursor:pointer;">search</span>
+            </div>
+            <div id="search-result-area"></div>
+        </div>
+
+        <div id="requests-view-content" style="flex:1; overflow-y:auto; display:none;">
+            <div id="received-requests-list">
+                <p style="color:#999; margin-top:20px;">받은 요청이 없습니다.</p>
+            </div>
+        </div>
+
+        <button class="modal-btn bg-g" onclick="closeModal('searchUserModal')">닫기</button>
+    </div>
 </div>
   
 </body>
