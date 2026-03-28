@@ -37,7 +37,8 @@
       .bubble { font-size: 14px; }
   }
 
-  #view-login { width: 100%; height: 100%; background-color: #fef01b; display: flex; flex-direction: column; align-items: center; justify-content: center; position: absolute; z-index: 9999; top: 0; left: 0; }
+  /* 로그인 배경 흰색 변경 */
+  #view-login { width: 100%; height: 100%; background-color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; position: absolute; z-index: 9999; top: 0; left: 0; }
   
   .login-logo-img { 
     width: 80px; 
@@ -197,21 +198,13 @@
       border-top-right-radius: 25px;
       display: flex;
       padding: 6px 10px calc(6px + env(safe-area-inset-bottom)) 10px;
-      box-shadow: 0 -8px 25px rgba(0,0,0,0.08);
+      box-shadow: 0 -4px 15px rgba(0,0,0,0.06); /* 그림자 살짝 추가 */
       z-index: 150;
       box-sizing: border-box;
   }
 
   .nav-indicator {
-      position: absolute;
-      top: 8px;
-      left: 10px;
-      width: calc((100% - 20px) / 3);
-      height: calc(100% - 16px - env(safe-area-inset-bottom));
-      background-color: #f2f2f7;
-      border-radius: 15px;
-      z-index: 1;
-      transition: transform 0.3s ease;
+      display: none; /* 지시선 움직임 비활성화 */
   }
 
   .nav-item {
@@ -224,8 +217,31 @@
       justify-content: center;
       cursor: pointer;
       color: #bcbcbc;
-      transition: color 0.3s ease;
+      transition: color 0.3s ease, transform 0.15s ease; /* 애니메이션 추가 */
       -webkit-tap-highlight-color: transparent;
+  }
+
+  .nav-item:active {
+      transform: scale(0.85); /* 누를때 텍스트와 아이콘 전체 축소 */
+  }
+
+  /* 버튼뒤 둥근 회색박스 (고정, 버튼크기에 맞춤) */
+  .nav-item::before {
+      content: "";
+      position: absolute;
+      width: 52px;
+      height: 48px;
+      background-color: transparent;
+      border-radius: 14px;
+      z-index: -1;
+      transition: background-color 0.2s ease;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+  }
+
+  .nav-item.active::before {
+      background-color: #f2f2f7;
   }
 
   .nav-item.active {
@@ -569,6 +585,36 @@
 .btn-blue { background: #0481ff; color: white; }
 .btn-gray { background: #f2f2f2; color: #555; }
 .btn-disabled { background: #eee; color: #aaa; cursor: not-allowed; }
+
+/* ===== [UPDATED] Search Modal to Full Screen Slide ===== */
+#searchUserModal {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: #fff !important;
+    z-index: 250;
+    transform: translateX(100%);
+    opacity: 1 !important; 
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    padding: 0;
+}
+#searchUserModal.show {
+    transform: translateX(0);
+}
+#searchUserModal .modal-box {
+    width: 100%;
+    max-width: 100%;
+    height: 100% !important;
+    border-radius: 0;
+    transform: none !important;
+    box-shadow: none;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    padding: 0;
+}
 </style>
 
 </head>
@@ -672,8 +718,6 @@
         </div>
 
         <div class="nav-pill-box">
-          <div class="nav-indicator" id="nav-indicator"></div>
-
           <div class="nav-item active" onclick="switchTab('friends', this, 0)">
              <div class="nav-icon-custom" style="-webkit-mask-image: url('https://i.postimg.cc/kGSthK3Y/user.png'); mask-image: url('https://i.postimg.cc/kGSthK3Y/user.png');"></div>
              <span class="nav-label">친구</span>
@@ -1240,12 +1284,6 @@
   function logout() { localStorage.clear(); location.reload(); }
 
   function switchTab(tab, el, index) {
-    // 1. Move Indicator
-    const indicator = document.getElementById('nav-indicator');
-    if (indicator) {
-        indicator.style.transform = `translateX(${index * 100}%)`;
-    }
-
     // 2. Active Class Toggle
     document.querySelectorAll(".nav-item").forEach(e => e.classList.remove("active"));
     el.classList.add("active");
@@ -1320,7 +1358,7 @@
   }
   
   function openMinsuGPT() {
-      // 채팅방이 열려있다면 닫기 (PC에서는 둘 다 열 수 없게 처리)
+      // 채팅방이 열려있다면 닫기 (PC에서는 둘 일 열 수 없게 처리)
       if(currentRoomId) exitRoom();
       
       document.getElementById("view-gpt").classList.add("open");
@@ -2291,8 +2329,12 @@ setInterval(() => checkFriendRequests(false), 3000);
 </div>
 
 <div id="searchUserModal" class="modal">
-    <div class="modal-box" style="height: 520px; display: flex; flex-direction: column; padding: 0;">
-        <div style="padding: 20px 20px 0 20px;">
+    <div class="modal-box" style="display: flex; flex-direction: column; padding: 0;">
+        <header class="chat-header" style="background:#fff; z-index:10; border-bottom:none;">
+            <span class="material-symbols-outlined" style="font-size:24px; padding:10px; cursor:pointer;" onclick="closeModal('searchUserModal')">arrow_back</span>
+            <div style="flex:1; font-weight:700; font-size:16px;">친구 관리</div>
+        </header>
+        <div style="padding: 10px 20px 0 20px;">
             <div class="search-modal-tabs">
                 <div class="search-tab active" onclick="switchSearchTab('search')" id="tab-btn-search">ID 검색</div>
                 <div class="search-tab" onclick="switchSearchTab('requests')" id="tab-btn-requests">
@@ -2315,11 +2357,8 @@ setInterval(() => checkFriendRequests(false), 3000);
             </div>
         </div>
         
-        <div style="padding: 15px; border-top: 1px solid #eee;">
-            <button class="modal-btn bg-g" style="margin:0;" onclick="closeModal('searchUserModal')">닫기</button>
-        </div>
     </div>
 </div>
   
 </body>
-</html>
+  </html>
